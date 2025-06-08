@@ -53,4 +53,26 @@
           (new-total (try! (safe-add (get total-donated donation-data) amount)))
         )
 
+          (map-set donors { donor: tx-sender } { total-donated: new-total }))
+        (map-set donors { donor: tx-sender } { total-donated: amount })))
+    (let ((new-fund (try! (safe-add (var-get total-scholarship-fund) amount))))
+      (var-set total-scholarship-fund new-fund)
+      (ok true))
+  )
+)
+
+;; Public Function: Apply for Scholarship
+(define-public (apply-scholarship (amount-requested uint) (reason (string-utf8 500)))
+  (begin
+    (asserts! (validate-amount amount-requested) err-invalid-amount)
+    (asserts! (validate-reason reason) err-invalid-reason)
+    (asserts! (> (var-get total-scholarship-fund) u0) err-application-closed)
+    (let ((existing-application (map-get? applicants { student: tx-sender })))
+      (asserts! (is-none existing-application) err-already-applied)
+      (map-set applicants { student: tx-sender } { status: "pending", amount-requested: amount-requested, reason: reason })
+      (ok true)
+    )
+  )
+)
+
 
