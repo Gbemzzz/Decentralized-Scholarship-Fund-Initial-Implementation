@@ -24,3 +24,10 @@
   (is-eq tx-sender (var-get owner))
 )
 
+(define-private (safe-add (a uint) (b uint))
+  (let ((result (+ a b)))
+    (if (< result a)
+      err-arithmetic-error
+      (ok result))
+  )
+)
