@@ -37,5 +37,20 @@
 
 (define-private (validate-reason (reason (string-utf8 500)))
   (and (> (len reason) u0) (<= (len reason) u500))
+)(define-private (validate-principal (principal-input principal))
+  (is-eq principal-input principal-input)
 )
+
+;; Public Function: Donate
+(define-public (donate (amount uint))
+  (begin
+    (asserts! (validate-amount amount) err-invalid-amount)
+    (try! (ft-transfer? scholarship-token amount tx-sender (var-get owner)))
+    (let ((existing-donation (map-get? donors { donor: tx-sender })))
+      (if (is-some existing-donation)
+        (let (
+          (donation-data (unwrap-panic existing-donation))
+          (new-total (try! (safe-add (get total-donated donation-data) amount)))
+        )
+
 
