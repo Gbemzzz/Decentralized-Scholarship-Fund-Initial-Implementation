@@ -15,3 +15,12 @@
 ;; Data Maps
 (define-map donors { donor: principal } { total-donated: uint })
 (define-map applicants { student: principal } { status: (string-ascii 10), amount-requested: uint, reason: (string-utf8 500) })
+;; Variables
+(define-data-var total-scholarship-fund uint u0)
+(define-data-var owner principal tx-sender)
+
+;; Private Functions
+(define-private (is-owner)
+  (is-eq tx-sender (var-get owner))
+)
+
