@@ -112,3 +112,12 @@
     (err err-not-found)
   )
 )
+;; New Constants and Maps
+(define-constant max-category-length u50)
+(define-map earmarked-funds { category: (string-ascii 50) } { amount: uint })
+(define-map donor-earmarks { donor: principal, category: (string-ascii 50) } { amount: uint })
+
+;; Private Function: Validate Category
+(define-private (validate-category (category (string-ascii 50)))
+  (and (> (len category) u0) (<= (len category) max-category-length))
+)
