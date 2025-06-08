@@ -37,5 +37,78 @@
 
 (define-private (validate-reason (reason (string-utf8 500)))
   (and (> (len reason) u0) (<= (len reason) u500))
+)(define-private (validate-principal (principal-input principal))
+  (is-eq principal-input principal-input)
 )
 
+;; Public Function: Donate
+(define-public (donate (amount uint))
+  (begin
+    (asserts! (validate-amount amount) err-invalid-amount)
+    (try! (ft-transfer? scholarship-token amount tx-sender (var-get owner)))
+    (let ((existing-donation (map-get? donors { donor: tx-sender })))
+      (if (is-some existing-donation)
+        (let (
+          (donation-data (unwrap-panic existing-donation))
+          (new-total (try! (safe-add (get total-donated donation-data) amount)))
+        )
+
+          (map-set donors { donor: tx-sender } { total-donated: new-total }))
+        (map-set donors { donor: tx-sender } { total-donated: amount })))
+    (let ((new-fund (try! (safe-add (var-get total-scholarship-fund) amount))))
+      (var-set total-scholarship-fund new-fund)
+      (ok true))
+  )
+)
+
+;; Public Function: Apply for Scholarship
+(define-public (apply-scholarship (amount-requested uint) (reason (string-utf8 500)))
+  (begin
+    (asserts! (validate-amount amount-requested) err-invalid-amount)
+    (asserts! (validate-reason reason) err-invalid-reason)
+    (asserts! (> (var-get total-scholarship-fund) u0) err-application-closed)
+    (let ((existing-application (map-get? applicants { student: tx-sender })))
+      (asserts! (is-none existing-application) err-already-applied)
+      (map-set applicants { student: tx-sender } { status: "pending", amount-requested: amount-requested, reason: reason })
+      (ok true)
+    )
+  )
+)
+
+;; Public Function: Evaluate Application
+(define-public (evaluate-application (student principal) (approve bool))
+  (begin
+    (asserts! (is-owner) err-not-owner)
+    (asserts! (validate-principal student) err-invalid-principal)
+    (let ((application (map-get? applicants { student: student })))
+      (asserts! (is-some application) err-not-found)
+      (let ((application-data (unwrap! application err-not-found)))
+        (if approve
+          (begin
+            (let ((requested (get amount-requested application-data)))
+              (asserts! (>= (var-get total-scholarship-fund) requested) err-insufficient-funds)
+              (try! (ft-transfer? scholarship-token requested (var-get owner) student))
+              (map-set applicants { student: student } { status: "approved", amount-requested: requested, reason: (get reason application-data) })
+              (var-set total-scholarship-fund (- (var-get total-scholarship-fund) requested))
+              (ok true)
+            )
+          )
+
+
+          (begin
+            (map-set applicants { student: student } { status: "rejected", amount-requested: (get amount-requested application-data), reason: (get reason application-data) })
+            (ok false)
+          )
+        )
+      )
+    )
+  )
+)
+
+;; Public Function: Get Application Status
+(define-read-only (get-application-status (student principal))
+  (match (map-get? applicants { student: student })
+    application (ok (get status application))
+    (err err-not-found)
+  )
+)
