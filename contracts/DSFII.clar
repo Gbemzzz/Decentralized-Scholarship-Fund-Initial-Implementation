@@ -31,3 +31,11 @@
       (ok result))
   )
 )
+(define-private (validate-amount (amount uint))
+  (> amount u0)
+)
+
+(define-private (validate-reason (reason (string-utf8 500)))
+  (and (> (len reason) u0) (<= (len reason) u500))
+)
+
