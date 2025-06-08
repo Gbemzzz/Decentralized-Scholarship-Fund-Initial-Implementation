@@ -94,3 +94,21 @@
             )
           )
 
+
+          (begin
+            (map-set applicants { student: student } { status: "rejected", amount-requested: (get amount-requested application-data), reason: (get reason application-data) })
+            (ok false)
+          )
+        )
+      )
+    )
+  )
+)
+
+;; Public Function: Get Application Status
+(define-read-only (get-application-status (student principal))
+  (match (map-get? applicants { student: student })
+    application (ok (get status application))
+    (err err-not-found)
+  )
+)
